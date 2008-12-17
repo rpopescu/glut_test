@@ -1,0 +1,6 @@
+*.o
+glut_test
+.DS_Store
+img/*.raw
+img/hvp1.tga
+img/hvp2.tga
