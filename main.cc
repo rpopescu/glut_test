@@ -60,7 +60,7 @@ void display()
 	static float where_x = 0;
 	float margin = glutGet(GLUT_WINDOW_WIDTH);
 
-	where_x += 20. * frm.elapsed_sec; // 512 pixels per second
+	where_x += 120. * frm.elapsed_sec; // 512 pixels per second
 	if(where_x > margin)
 	{
 		where_x -= margin;
@@ -68,17 +68,18 @@ void display()
 	glPushMatrix();
 	glTranslatef(where_x, 100 +  20.*sin(frm.frame*3.14/1000.), 0);
 	
-	
+	glEnable(GL_BLEND);	
 	glBegin(GL_QUADS);
-	glColor3f(1,1,1);
+	glColor4f(1,1,1,.5);
 	glVertex2f(  0.0f,   0.0f);
-	glColor3f(1,.5,.2);
+	glColor4f(1,.5,.2,1);
 	glVertex2f(128.0f,   0.0f);
-	glColor3f(0,0,1);
+	glColor4f(0,0,1,.5);
 	glVertex2f(128.0f, 128.0f);
-	glColor3f(0,1,0);
+	glColor4f(0,1,0,1);
 	glVertex2f(  0.0f, 128.0f);
 	glEnd();
+	glDisable(GL_BLEND);
 
 	glPopMatrix();	
 	glutSwapBuffers();
@@ -91,6 +92,9 @@ void reshape(int width, int height)
 	glLoadIdentity();
 	gluOrtho2D(0, width, 0, height);
 	glMatrixMode(GL_MODELVIEW);
+	// no z-buffer
+	glDepthMask(false);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 }
 
 void idle(void)
@@ -113,7 +117,6 @@ void tga_test(const string& fname)
 int main(int argc, char** argv)
 {
 	if(argc > 1) tga_test(string(argv[1]));
-	image_manager::dump("img/hvp.tga", "img/hvp.raw");
 	
 	glutInit(&argc, argv);
 	
