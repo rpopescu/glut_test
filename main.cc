@@ -14,14 +14,18 @@
 #include <iostream>
 #include <cmath>
 #include <map>
+#include <vector>
 #include "image_loader.h"
+#include "3d.h"
+
+#define DFLT_WIDTH 640
+#define DFLT_HEIGHT 360
 
 using namespace std;
 
-
 struct frame_manager
 {
-	frame_manager() : last(0), now(0), elapsed_ms(0), elapsed_sec(0), frame(0) { }
+	frame_manager() : last(0), now(0), elapsed_ms(0), elapsed_sec(0), frame(0), width(DFLT_WIDTH), height(DFLT_HEIGHT) { }
 	void refresh()
 	{
 		if(last == 0)
@@ -37,51 +41,126 @@ struct frame_manager
 	uint32_t last, now, elapsed_ms;
 	float elapsed_sec;
 	uint32_t frame;
+	uint16_t width, height;
 };
 
 frame_manager frm;
+
+struct grid_display
+{
+	grid_display(uint16_t divisions) : listnum(0), compiled(false), div(divisions)
+	{
+		step_x = frm.width/div;
+		step_y = frm.height/div;
+		vertex p1, p2, p3, p4;
+		for(int y = 0;  y < step_y * div; y += step_y)
+		{
+			for(int x = 0; x < step_x * div; x += step_x)
+			{
+				p1.x = x; p1.y = y;
+				p2.x = x + step_x; p2.y = y;
+				p3.x = x + step_x; p3.y = y + step_y;
+				p4.x = x; p4.y = y + step_y;
+				if(x == 0) grid.push_back(p4);
+				if(x == 0) grid.push_back(p1);
+				grid.push_back(p3);
+				grid.push_back(p2);
+			}
+		}
+	}
+	~grid_display()
+	{
+		if(listnum != 0)
+			glDeleteLists(listnum, 1);
+	}
+
+	void build_list()
+	{
+		if(compiled) return;
+		listnum = glGenLists(2);
+		GLfloat c1[4] = {1.0, 0.7, 0.0, 0.25};
+		GLfloat c2[4] = {0.0, 0.1, 1.0, 0.25};
+		GLfloat c3[4] = {1.0, 0.0, 0.0, 0.25};
+		GLfloat* c = (GLfloat*)&c1;
+		// draw polygons
+		glNewList(listnum, GL_COMPILE);
+		glPolygonMode(GL_FRONT, GL_FILL);
+		for(int i = 0; i < grid.size(); i++)
+		{
+			bool new_row = (i % ((div + 1) * 2) == 0);
+			bool last_in_row = (i % ((div + 1) * 2) == (div + 1) * 2 - 1);
+			if (new_row) glBegin(GL_TRIANGLE_STRIP);
+			if (new_row) if(c == (GLfloat*) &c1) c = (GLfloat*)&c2; else c = (GLfloat*)&c1;
+			glColor4fv(c);
+			glVertex2f(grid[i].x, grid[i].y);
+			if (last_in_row) glEnd();
+		}
+		glEndList();
+		
+		glNewList(listnum + 1, GL_COMPILE);
+		glPolygonMode(GL_FRONT, GL_LINE);
+		for(int i = 0; i < grid.size(); i++)
+		{
+			if(i % ((div + 1) * 2) == 0) glBegin(GL_TRIANGLE_STRIP);
+			glColor4fv(c3);
+			glVertex2f(grid[i].x, grid[i].y);
+			if(i % ((div+ 1) * 2) == (div + 1) * 2 - 1) glEnd();
+		}
+		glPolygonMode(GL_FRONT, GL_FILL);
+		glEndList();
+		compiled = true;
+	}
+
+	void display()
+	{
+		build_list();
+		glCallList(listnum);
+		glCallList(listnum + 1);
+	}
+
+	GLuint listnum;
+	bool compiled;
+	vector<vertex> grid;
+	uint16_t div;
+	float step_x, step_y;
+};
+
+void draw_image_at(const string& image_id, uint16_t x, uint16_t y)
+{
+	glRasterPos2s(x, y);
+
+	image* img = image_manager::get(image_id);
+	if(img)
+	{
+		glDrawPixels(img->width, img->height, img->bpp == 32 ? GL_BGRA : GL_BGR, GL_UNSIGNED_BYTE, img->data);
+	}
+	else
+	{
+		cout << "image " << image_id << " is no good" << endl;
+	}
+}
+
+grid_display grid(20);
 
 void display()
 {
 	frm.refresh();
 
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	
-	image* img = image_manager::get("img/hvp.tga");
-	if(img)
-	{
-		glDrawPixels(img->width, img->height, GL_BGRA, GL_UNSIGNED_BYTE, img->data);
-	}
-	else
-	{
-		cout << "image invalid" << endl;
-	}
 
-	static float where_x = 0;
-	float margin = glutGet(GLUT_WINDOW_WIDTH);
-
-	where_x += 120. * frm.elapsed_sec; // 512 pixels per second
-	if(where_x > margin)
-	{
-		where_x -= margin;
-	}
-	glPushMatrix();
-	glTranslatef(where_x, 100 +  20.*sin(frm.frame*3.14/1000.), 0);
-	
+	//glBlendFunc(GL_ONE, GL_ZERO);
+	draw_image_at("img/skull01_orig.tga", 0, 0);
 	glEnable(GL_BLEND);	
-	glBegin(GL_QUADS);
-	glColor4f(1,1,1,.5);
-	glVertex2f(  0.0f,   0.0f);
-	glColor4f(1,.5,.2,1);
-	glVertex2f(128.0f,   0.0f);
-	glColor4f(0,0,1,.5);
-	glVertex2f(128.0f, 128.0f);
-	glColor4f(0,1,0,1);
-	glVertex2f(  0.0f, 128.0f);
-	glEnd();
-	glDisable(GL_BLEND);
+	//glBlendFunc(GL_SRC_COLOR, GL_ONE_MINUS_SRC_COLOR);
+	glBlendFunc(GL_SRC_COLOR, GL_DST_COLOR);
+	draw_image_at("img/skull01_sobel.tga", 0, 0);
+	draw_image_at("img/skull01_canvas.tga", 0, 0);
 
-	glPopMatrix();	
+
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	grid.display();
+	
+	
 	glutSwapBuffers();
 }
 
@@ -95,6 +174,8 @@ void reshape(int width, int height)
 	// no z-buffer
 	glDepthMask(false);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	frm.width = width;
+	frm.height = height;
 }
 
 void idle(void)
@@ -102,26 +183,14 @@ void idle(void)
 	glutPostRedisplay();
 }
 
-void tga_test(const string& fname)
-{
-	image* img = image_loader::load(fname);
-	if(!img)
-	{
-		cout << "image loading failed" << endl;
-		exit(1);
-	}
-	cout << "img [" << img->id << "] : " << img->width << "x" << img->height << endl;
-	exit(0);
-}
+
 
 int main(int argc, char** argv)
 {
-	if(argc > 1) tga_test(string(argv[1]));
-	
 	glutInit(&argc, argv);
 	
 	glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE | GLUT_DEPTH);
-	glutInitWindowSize((600*16)/9, 600);
+	glutInitWindowSize(DFLT_WIDTH, DFLT_HEIGHT);
 	
 	glutCreateWindow("demo");
 	

@@ -43,21 +43,24 @@ struct image_loader
 		if(hdr[1]) return NULL;
 		uint8_t type = hdr[2];
 		uint8_t bpp = hdr[16];
-		cout << (int)bpp << "bpp ";
-		switch(type)
+		enum TGAImageTypes
 		{
-			case 0: cout << "no image data"<< endl; break;
-			case 1: cout << "uncompressed colormap" << endl; break;
-			case 2: cout << "uncompressed truecolor" << endl; break;
-			case 3: cout << "uncompressed black and white" << endl; break;
-			case 9: cout << "RLE colormap" << endl; break;
-			case 10: cout << "RLE truecolor" << endl; break;
-			case 11: cout << "RLE black and white" << endl; break;
-			default: cout << "unknown image type" << endl;
+			TGA_IMG_NONE = 0,
+			TGA_IMG_COLORMAP = 1,
+			TGA_IMG_TRUECOLOR = 2,
+			TGA_IMG_BW = 3,
+			TGA_IMG_RLE_COLORMAP = 9,
+			TGA_IMG_RLE_TRUECOLOR = 10,
+			TGA_IMG_RLE_BW = 11
+		};
+		if(type != TGA_IMG_TRUECOLOR && type != TGA_IMG_RLE_TRUECOLOR)
+		{
+			cout << "unsupported TGA image type (" << type << ")" << endl;
+			return NULL;
 		}
-		if(type != 2 && type != 10)
+		if(bpp != 32 && bpp != 24)
 		{
-			cout << "unsupported TGA type" << endl;
+			cout << "unsupported TGA bpp value (" << bpp << ")" << endl;
 			return NULL;
 		}
 		image* img = new image(fname, *((uint16_t*)(hdr + 12)), *((uint16_t*)(hdr + 14)), bpp);
