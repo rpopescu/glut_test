@@ -128,7 +128,7 @@ struct grid_display
 	float step_x, step_y;
 };
 
-void draw_image_at(const string& image_id, uint16_t x, uint16_t y)
+void old_draw_image_at(const string& image_id, uint16_t x, uint16_t y)
 {
 	glRasterPos2s(x, y);
 
@@ -143,13 +143,14 @@ void draw_image_at(const string& image_id, uint16_t x, uint16_t y)
 	}
 }
 
-void draw_image_at2(const string& image_id, uint16_t x, uint16_t y)
+void draw_image_at(const string& image_id, uint16_t x, uint16_t y)
 {
 	image* img = image_manager::get(image_id);
 	if(img)
 	{
 		glPolygonMode(GL_FRONT, GL_FILL);
 		img->use();
+		glColor3f(1,1,1); // why do I need to do this at all?!
 		glBegin(GL_QUADS);
 		glTexCoord2f(0, 0); glVertex2s(x, y);
 		glTexCoord2f(1, 0); glVertex2s(x + img->width, y);
@@ -169,16 +170,16 @@ void display()
 {
 	frm.refresh();
 
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glClear(GL_COLOR_BUFFER_BIT);// | GL_DEPTH_BUFFER_BIT
 
-	draw_image_at2("img/hvp.tga", 0, 0);
 	glEnable(GL_BLEND);	
-	//draw_image_at2("img/skull01_canvas.tga", 0, 0);
-	//draw_image_at2("img/skull01_sobel.tga", 0, 0);
+	draw_image_at("img/skull01_orig.tga", 0, 0);
+	draw_image_at("img/skull01_sobel.tga", 0, 0);
+	draw_image_at("img/skull01_canvas.tga", 0, 0);
 
 
 	glBlendFunc(GL_ONE, GL_DST_COLOR);
-	//grid.display();
+	grid.display();
 	
 	glDisable(GL_BLEND);	
 	
