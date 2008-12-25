@@ -71,7 +71,7 @@ struct grid_display
 	~grid_display()
 	{
 		if(listnum != 0)
-			glDeleteLists(listnum, 1);
+			glDeleteLists(listnum, 2);
 	}
 
 	void build_list()
@@ -85,10 +85,11 @@ struct grid_display
 		// draw polygons
 		glNewList(listnum, GL_COMPILE);
 		glPolygonMode(GL_FRONT, GL_FILL);
-		for(int i = 0; i < grid.size(); i++)
+		const uint32_t points_per_row = (div + 1) * 2;
+		for(uint32_t i = 0; i < grid.size(); i++)
 		{
-			bool new_row = (i % ((div + 1) * 2) == 0);
-			bool last_in_row = (i % ((div + 1) * 2) == (div + 1) * 2 - 1);
+			bool new_row = (i % points_per_row == 0);
+			bool last_in_row = (i % points_per_row == points_per_row - 1);
 			if (new_row) glBegin(GL_TRIANGLE_STRIP);
 			if (new_row) if(c == (GLfloat*) &c1) c = (GLfloat*)&c2; else c = (GLfloat*)&c1;
 			glColor4fv(c);
@@ -99,12 +100,14 @@ struct grid_display
 		
 		glNewList(listnum + 1, GL_COMPILE);
 		glPolygonMode(GL_FRONT, GL_LINE);
-		for(int i = 0; i < grid.size(); i++)
+		for(uint32_t i = 0; i < grid.size(); i++)
 		{
-			if(i % ((div + 1) * 2) == 0) glBegin(GL_TRIANGLE_STRIP);
+			bool new_row = (i % points_per_row == 0);
+			bool last_in_row = (i % points_per_row == points_per_row - 1);
+			if(new_row) glBegin(GL_TRIANGLE_STRIP);
 			glColor4fv(c3);
 			glVertex2f(grid[i].x, grid[i].y);
-			if(i % ((div+ 1) * 2) == (div + 1) * 2 - 1) glEnd();
+			if(last_in_row) glEnd();
 		}
 		glPolygonMode(GL_FRONT, GL_FILL);
 		glEndList();
@@ -140,6 +143,28 @@ void draw_image_at(const string& image_id, uint16_t x, uint16_t y)
 	}
 }
 
+void draw_image_at2(const string& image_id, uint16_t x, uint16_t y)
+{
+	glRasterPos2s(x, y);
+
+	image* img = image_manager::get(image_id);
+	if(img)
+	{
+		glEnable(GL_TEXTURE_2D);
+		img->use();
+		glBegin(GL_QUADS);
+		glTexCoord2f(0, 0); glVertex2s(0, 0);
+		glTexCoord2f(1, 0); glVertex2s(img->width, 0);
+		glTexCoord2f(1, 1); glVertex2s(img->width, img->height);
+		glTexCoord2f(0, 1); glVertex2s(0, img->height);
+		glEnd();
+	}
+	else
+	{
+		cout << "image " << image_id << " is no good" << endl;
+	}
+}
+
 grid_display grid(20);
 
 void display()
@@ -149,16 +174,16 @@ void display()
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	//glBlendFunc(GL_ONE, GL_ZERO);
-	draw_image_at("img/skull01_orig.tga", 0, 0);
+	draw_image_at2("img/skull01_orig.tga", 0, 0);
 	glEnable(GL_BLEND);	
 	//glBlendFunc(GL_SRC_COLOR, GL_ONE_MINUS_SRC_COLOR);
-	glBlendFunc(GL_SRC_COLOR, GL_DST_COLOR);
-	draw_image_at("img/skull01_sobel.tga", 0, 0);
-	draw_image_at("img/skull01_canvas.tga", 0, 0);
+	//glBlendFunc(GL_SRC_COLOR, GL_DST_COLOR);
+	//draw_image_at("img/skull01_sobel.tga", 0, 0);
+	//draw_image_at("img/skull01_canvas.tga", 0, 0);
 
 
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-	grid.display();
+	//grid.display();
 	
 	
 	glutSwapBuffers();

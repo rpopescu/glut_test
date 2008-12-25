@@ -11,7 +11,7 @@ using namespace std;
 class image
 {
 public:
-	image(const string& image_id, uint16_t w, uint16_t h, uint8_t bpp) : id(image_id), width(w), height(h), bpp(bpp), data(0)
+	image(const string& image_id, uint16_t w, uint16_t h, uint8_t bpp) : id(image_id), width(w), height(h), bpp(bpp), data(0), has_tex_id(false), tex_id(0)
 	{
 		data = new uint8_t[width*height*(bpp/8)];
 	}
@@ -21,10 +21,47 @@ public:
 		data = NULL;
 	}
 
+	GLuint create_texture()
+	{
+		if(!has_tex_id)
+		{
+			glGenTextures(1, &tex_id);
+			glBindTexture(GL_TEXTURE_2D, tex_id);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+			glTexImage2D(GL_TEXTURE_2D, 0, image_components(), width, height, 0, pixel_format(), GL_UNSIGNED_BYTE, data);
+			has_tex_id = true;
+		}
+		return tex_id;
+	}
+
+	void use()
+	{
+		create_texture();
+		glBindTexture(GL_TEXTURE_2D, tex_id);
+	}
+
+	int pixel_format() const
+	{
+		return bpp == 32 ? GL_BGRA : GL_BGR;
+	}
+
+	int pixel_storage() const
+	{
+		return GL_UNSIGNED_BYTE;
+	}
+
+	int image_components() const
+	{
+		return bpp == 32 ? GL_RGBA : GL_RGB;
+	}
+
 	const string id;
 	const uint16_t width, height;
 	const uint8_t bpp;
 	uint8_t* data;
+	bool has_tex_id;
+	GLuint tex_id;
 private:	
 	image(const image&);
 	image& operator=(const image&);
