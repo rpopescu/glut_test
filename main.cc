@@ -74,13 +74,14 @@ struct grid_display
 			glDeleteLists(listnum, 2);
 	}
 
+
 	void build_list()
 	{
 		if(compiled) return;
 		listnum = glGenLists(2);
 		GLfloat c1[4] = {1.0, 0.7, 0.0, 0.25};
 		GLfloat c2[4] = {0.0, 0.1, 1.0, 0.25};
-		GLfloat c3[4] = {1.0, 0.0, 0.0, 0.25};
+		GLfloat c3[4] = {0.0, 1.0, 0.0, 0.25};
 		GLfloat* c = (GLfloat*)&c1;
 		// draw polygons
 		glNewList(listnum, GL_COMPILE);
@@ -109,7 +110,6 @@ struct grid_display
 			glVertex2f(grid[i].x, grid[i].y);
 			if(last_in_row) glEnd();
 		}
-		glPolygonMode(GL_FRONT, GL_FILL);
 		glEndList();
 		compiled = true;
 	}
@@ -145,18 +145,16 @@ void draw_image_at(const string& image_id, uint16_t x, uint16_t y)
 
 void draw_image_at2(const string& image_id, uint16_t x, uint16_t y)
 {
-	glRasterPos2s(x, y);
-
 	image* img = image_manager::get(image_id);
 	if(img)
 	{
-		glEnable(GL_TEXTURE_2D);
+		glPolygonMode(GL_FRONT, GL_FILL);
 		img->use();
 		glBegin(GL_QUADS);
-		glTexCoord2f(0, 0); glVertex2s(0, 0);
-		glTexCoord2f(1, 0); glVertex2s(img->width, 0);
-		glTexCoord2f(1, 1); glVertex2s(img->width, img->height);
-		glTexCoord2f(0, 1); glVertex2s(0, img->height);
+		glTexCoord2f(0, 0); glVertex2s(x, y);
+		glTexCoord2f(1, 0); glVertex2s(x + img->width, y);
+		glTexCoord2f(1, 1); glVertex2s(x + img->width, y + img->height);
+		glTexCoord2f(0, 1); glVertex2s(x, y + img->height);
 		glEnd();
 	}
 	else
@@ -173,18 +171,16 @@ void display()
 
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	//glBlendFunc(GL_ONE, GL_ZERO);
-	draw_image_at2("img/skull01_orig.tga", 0, 0);
+	draw_image_at2("img/hvp.tga", 0, 0);
 	glEnable(GL_BLEND);	
-	//glBlendFunc(GL_SRC_COLOR, GL_ONE_MINUS_SRC_COLOR);
-	//glBlendFunc(GL_SRC_COLOR, GL_DST_COLOR);
-	//draw_image_at("img/skull01_sobel.tga", 0, 0);
-	//draw_image_at("img/skull01_canvas.tga", 0, 0);
+	//draw_image_at2("img/skull01_canvas.tga", 0, 0);
+	//draw_image_at2("img/skull01_sobel.tga", 0, 0);
 
 
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	glBlendFunc(GL_ONE, GL_DST_COLOR);
 	//grid.display();
 	
+	glDisable(GL_BLEND);	
 	
 	glutSwapBuffers();
 }
@@ -198,7 +194,7 @@ void reshape(int width, int height)
 	glMatrixMode(GL_MODELVIEW);
 	// no z-buffer
 	glDepthMask(false);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	glEnable(GL_TEXTURE_2D);
 	frm.width = width;
 	frm.height = height;
 }

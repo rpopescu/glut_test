@@ -163,7 +163,7 @@ struct image_manager
 		{
 			cout << "image_manager: loading " << fname << endl;
 			image* img = image_loader::load(fname);
-			cout << "img [" << img->id << "] : " << img->width << "x" << img->height << endl;
+			cout << "img [" << img->id << "] : " << img->width << "x" << img->height << " " << (int)img->bpp << " bpp" << endl;
 			image_map.insert(make_pair(fname, img));
 			return img;
 		}
